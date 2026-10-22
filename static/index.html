@@ -1,0 +1,548 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Astana IT University LMS</title>
+<style>
+:root {
+    --bg: #d4d5d9;
+    --side: #cfcfcf;
+    --main: #bebebe;
+    --card: #d9d9d9;
+    --strip: #cdcdcd;
+    --text: #111;
+    --rail: #202020;
+    --sh: 0 3px 6px #0004;
+}
+:root[data-theme=dark] {
+    --bg: #16171a;
+    --side: #26272b;
+    --main: #1d1e21;
+    --card: #34353a;
+    --strip: #2b2c30;
+    --text: #eee;
+    --rail: #000;
+    --sh: 0 3px 6px #0008;
+}
+* {
+    box-sizing: border-box;
+}
+body {
+    margin: 0;
+    font-family: Inter,system-ui,sans-serif;
+    background: var(--bg);
+    color: var(--text);
+}
+button,input,select {
+    font: inherit;
+    color: var(--text);
+    min-height: 44px;
+    min-width: 44px;
+    border-radius: 10px;
+    border: 1px solid #8886;
+    padding: 0 12px;
+    background: var(--card);
+}
+button {
+    cursor: pointer;
+}
+#login {
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 36px;
+    padding: 16px;
+    background: linear-gradient(#0008,#0008),url(login-bg.jpg) center/cover,linear-gradient(135deg,#27406b,#111);
+}
+.logo {
+    width: 220px;
+    max-width: 70%;
+    height: auto;
+}
+.lbox {
+    background: #e2e2e2;
+    border: 1px solid #fff6;
+    border-radius: 14px;
+    width: 100%;
+    max-width: 520px;
+    min-height: 210px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
+    padding: 20px;
+}
+.ms {
+    background: #1f1f1f;
+    color: #fff;
+    border: 0;
+    width: 100%;
+    max-width: 374px;
+    box-shadow: 0 8px 14px #0005;
+    display: flex;
+    align-items: center;
+    gap: 22px;
+    text-align: left;
+}
+.ms:hover {
+    background: #000;
+}
+#email,#password {
+    width: 100%;
+    max-width: 374px;
+    background: #fff;
+    color: #111;
+}
+.pw {
+    display: flex;
+    gap: 8px;
+    width: 100%;
+    max-width: 374px;
+}
+.pw #password {
+    flex: 1;
+    min-width: 0;
+}
+#showpw {
+    background: #fff;
+    color: #111;
+    font-size: 13px;
+}
+.msg {
+    color: #c0392b;
+    min-height: 20px;
+    font-size: 14px;
+}
+#app {
+    display: none;
+    min-height: 100vh;
+    padding: 14px;
+    gap: 14px;
+    grid-template-columns: 80px 300px 1fr;
+}
+.leftcol {
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+}
+.rail {
+    background: var(--rail);
+    border-radius: 14px;
+    padding: 14px 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 14px;
+    box-shadow: var(--sh);
+}
+.rail button {
+    background: transparent;
+    border: 0;
+    color: #fff;
+    font-size: 22px;
+    border-radius: 10px;
+}
+.rail img,.menu img {
+    width: 26px;
+    height: 26px;
+    object-fit: contain;
+    flex: none;
+    pointer-events: none;
+}
+.menu img {
+    mix-blend-mode: multiply;
+}
+.rail img,.logo,.ms img {
+    mix-blend-mode: screen;
+}
+:root[data-theme=dark] .menu img {
+    filter: invert(1);
+    mix-blend-mode: screen;
+}
+.rail button.on {
+    background: #555;
+}
+.tools {
+    flex: 1;
+    min-height: 80px;
+    background: var(--side);
+    border-radius: 14px;
+    box-shadow: var(--sh);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: flex-end;
+    padding: 8px;
+    gap: 6px;
+}
+.tools button {
+    background: transparent;
+    border: 0;
+    font-size: 20px;
+}
+.side {
+    background: var(--side);
+    border-radius: 14px;
+    padding: 14px;
+    box-shadow: var(--sh);
+    position: relative;
+}
+.user {
+    width: 100%;
+    text-align: left;
+    background: var(--card);
+    box-shadow: var(--sh);
+    border: 0;
+    display: flex;
+    gap: 10px;
+    align-items: center;
+    padding: 6px 12px;
+    font-size: 13px;
+    height: auto;
+    min-height: 56px;
+}
+.user span {
+    font-size: 24px;
+}
+#lo {
+    display: none;
+    width: 100%;
+    margin-top: 2px;
+    background: var(--strip);
+    border: 0;
+    box-shadow: var(--sh);
+}
+.menu {
+    margin-top: 34px;
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+}
+.menu button {
+    text-align: left;
+    border: 0;
+    background: transparent;
+    font-size: 17px;
+    display: flex;
+    gap: 14px;
+    align-items: center;
+}
+.menu button.on {
+    background: var(--card);
+    box-shadow: var(--sh);
+    border: 1px solid #fff5;
+}
+main {
+    background: var(--main);
+    border-radius: 14px;
+    padding: 28px;
+    box-shadow: inset 0 0 0 3px #ffffff30;
+    overflow-x: auto;
+}
+h2 {
+    margin-top: 0;
+}
+.cards {
+    display: grid;
+    grid-template-columns: repeat(auto-fill,minmax(210px,1fr));
+    gap: 34px 40px;
+}
+.card {
+    position: relative;
+    padding-bottom: 36px;
+}
+.card .top {
+    background: var(--card);
+    border-radius: 10px;
+    padding: 16px;
+    min-height: 110px;
+    box-shadow: var(--sh);
+    position: relative;
+    z-index: 1;
+}
+.card .strip {
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    height: 72px;
+    background: var(--strip);
+    border-radius: 10px;
+    padding: 46px 12px 0;
+    font-size: 13px;
+}
+table {
+    width: 100%;
+    border-collapse: collapse;
+}
+td,th {
+    padding: 10px;
+    border-bottom: 1px solid #8886;
+    text-align: left;
+}
+.bar {
+    height: 8px;
+    background: #8884;
+    border-radius: 4px;
+    min-width: 80px;
+}
+.bar i {
+    display: block;
+    height: 100%;
+    background: #202020;
+    border-radius: 4px;
+}
+:root[data-theme=dark] .bar i {
+    background: #ddd;
+}
+form {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-bottom: 16px;
+}
+.big {
+    font-size: 34px;
+    font-weight: 700;
+}
+.tl-controls {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-bottom: 8px;
+}
+.tl-controls input {
+    flex: 1;
+    min-width: 200px;
+}
+.tl-day {
+    font-weight: 700;
+    margin: 22px 0 6px;
+}
+.tl-item {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    background: var(--card);
+    padding: 10px 14px;
+    border-bottom: 1px solid #8886;
+}
+.tl-time {
+    width: 44px;
+    flex: none;
+    font-size: 14px;
+}
+.tl-ico {
+    width: 30px;
+    height: 30px;
+    object-fit: contain;
+    flex: none;
+    filter: invert(1);
+    mix-blend-mode: multiply;
+}
+:root[data-theme=dark] .tl-ico {
+    filter: none;
+    mix-blend-mode: screen;
+}
+.tl-body {
+    min-width: 0;
+}
+.badge {
+    display: inline-block;
+    background: #555;
+    color: #fff;
+    font-size: 12px;
+    font-weight: 700;
+    border-radius: 12px;
+    padding: 2px 9px;
+    margin-left: 6px;
+}
+.badge.od {
+    background: #c0392b;
+}
+#more {
+    margin-top: 14px;
+}
+@media(max-width:760px) {
+    #app {
+        grid-template-columns: 1fr;
+        padding: 8px;
+    }
+    .leftcol {
+        flex-direction: row;
+    }
+    .rail {
+        flex-direction: row;
+        flex: 1;
+        padding: 6px 10px;
+        justify-content: space-around;
+    }
+    .tools {
+        flex: 0 0 auto;
+        min-height: 0;
+        flex-direction: row;
+        padding: 4px;
+    }
+    .menu {
+        margin-top: 12px;
+        flex-direction: row;
+        overflow-x: auto;
+        gap: 6px;
+    }
+    .menu button {
+        white-space: nowrap;
+        font-size: 15px;
+    }
+    main {
+        padding: 16px;
+    }
+    .cards {
+        gap: 26px 16px;
+    }
+}
+
+</style>
+</head>
+<body>
+<div id="login">
+  <img class="logo" src="icons/logo.jpg" alt="Astana IT University">
+  <div class="lbox">
+    <input id="email" type="email" value="260002@astanait.edu.kz" autocomplete="username" aria-label="University email">
+    <div class="pw"><input id="password" type="password" placeholder="Password" autocomplete="current-password" aria-label="Password"><button type="button" id="showpw" aria-label="Show password">Show</button></div>
+    <button class="ms" id="signin"><img src="icons/office.jpg" alt="" width="30" height="30">Sign in</button>
+    <div class="msg" id="lmsg"></div>
+  </div>
+</div>
+
+<div id="app">
+  <div class="leftcol">
+    <div class="rail">
+      <button data-v="dashboard" class="on" title="Home" aria-label="Home"><img src="icons/home.jpg" alt=""></button>
+      <button data-v="groups" title="Project groups" aria-label="Project groups"><img src="icons/chat.jpg" alt=""></button>
+      <button data-v="grades" title="Grades" aria-label="Grades"><img src="icons/notes.jpg" alt=""></button>
+    </div>
+    <div class="tools"><button id="theme" title="Dark mode">&#9790;</button></div>
+  </div>
+  <div class="side">
+    <button class="user" id="user"><span>&#128100;</span><div><div id="uname">Student name</div><div id="umail"></div></div></button>
+    <button id="lo">&#10162; Log out</button>
+    <nav class="menu">
+      <button data-v="dashboard"><img src="icons/dashboard.jpg" alt="">Dashboard</button>
+      <button data-v="courses" class="on"><img src="icons/courses.jpg" alt="">My courses</button>
+      <button data-v="attendance"><img src="icons/attendance.jpg" alt="">Attendance</button>
+      <button data-v="grades"><img src="icons/grades.jpg" alt="">Grades</button>
+    </nav>
+  </div>
+  <main id="view"></main>
+</div>
+
+<script>
+const $=s=>document.querySelector(s);
+const BASE=location.port==="5000"?"":"http://127.0.0.1:5000";
+let token=sessionStorage.getItem("t")||"";
+async function api(path,opt={}){
+  const r=await fetch(BASE+"/api"+path,{...opt,headers:{"Content-Type":"application/json",Authorization:token}});
+  let d={};try{d=await r.json()}catch(e){throw new Error("Server error "+r.status+" - open http://127.0.0.1:5000 (run python app_postgresql.py)")}
+  if(r.status===401&&path!=="/login"){sessionStorage.clear();token="";$("#app").style.display="none";$("#login").style.display="flex"}
+  if(!r.ok)throw new Error(d.error||"Error");return d;
+}                                                                                                                                                         
+const esc=s=>String(s).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const mask=e=>e.replace(/^(\d\d)\d+@/,"$1*****@");
+
+$("#signin").onclick=async()=>{
+  try{const d=await api("/login",{method:"POST",body:JSON.stringify({email:$("#email").value,password:$("#password").value})});
+    $("#password").value="";$("#lmsg").textContent="";
+    token=d.token;sessionStorage.setItem("t",token);sessionStorage.setItem("n",d.name);sessionStorage.setItem("m",d.email);start();}
+  catch(e){$("#password").value="";$("#lmsg").textContent=e.message}
+};
+["#email","#password"].forEach(s=>$(s).addEventListener("keydown",e=>{if(e.key==="Enter")$("#signin").click()}));
+$("#showpw").onclick=()=>{const p=$("#password"),h=p.type==="password";p.type=h?"text":"password";$("#showpw").textContent=h?"Hide":"Show"};
+$("#user").onclick=()=>{const o=$("#lo").style.display==="block";$("#lo").style.display=o?"none":"block";
+  $("#umail").textContent=mask(sessionStorage.getItem("m")||"")+(o?" \u25BE":" \u25B4")};
+$("#lo").onclick=async()=>{try{await api("/logout",{method:"POST"})}catch(e){}sessionStorage.clear();token="";$("#app").style.display="none";$("#login").style.display="flex"};
+$("#theme").onclick=()=>{const r=document.documentElement;r.dataset.theme=r.dataset.theme==="dark"?"":"dark"};
+document.querySelectorAll("[data-v]").forEach(b=>b.onclick=()=>show(b.dataset.v));
+
+function start(){$("#login").style.display="none";$("#app").style.display="grid";
+  $("#uname").textContent=sessionStorage.getItem("n");$("#umail").textContent=mask(sessionStorage.getItem("m"))+" \u25BE";show("courses")}
+
+const card=(t,s)=>`<div class=card><div class=top>${t}</div><div class=strip>${s}</div></div>`;
+const bar=p=>`<div class=bar><i style="width:${p}%"></i></div>`;
+
+async function show(v){
+  document.querySelectorAll("[data-v]").forEach(b=>b.classList.toggle("on",b.dataset.v===v));
+  const el=$("#view");
+  try{
+  if(v==="courses"){
+    const c=await api("/courses");
+    el.innerHTML="<h2>My courses</h2><div class=cards>"+c.map(x=>card(`<b>${esc(x.title)}</b><br><small>${esc(x.code)}</small>`,esc(x.teacher))).join("")+"</div>";
+  }else if(v==="dashboard"){
+    const [d,all,att]=await Promise.all([api("/dashboard"),api("/assignments"),api("/attendance")]);
+    const todo=all.filter(x=>x.score===null);   // not graded yet = still to do
+    const ctl={current:"Current",midterm:"Midterm",final:"Final"};
+    const ico='<img class=tl-ico src="icons/notes.jpg" alt="">';
+    const day=s=>{const t=new Date(s+"T00:00:00Z"),o={timeZone:"UTC"};
+      return t.toLocaleDateString("en-US",{...o,weekday:"long"})+", "+t.getUTCDate()+" "+t.toLocaleDateString("en-US",{...o,month:"long"})+" "+t.getUTCFullYear()};
+    el.innerHTML="<h2>Dashboard</h2><div class=cards>"+
+      card(`<div class=big>${d.courses}</div>`,"Courses")+card(`<div class=big>${d.avg_grade}%</div>`,"Average grade")+
+      card(`<div class=big>${d.groups}</div>`,"Project groups")+"</div>"+
+      `<h2 style="margin-top:36px">Timeline</h2>
+      <div class=tl-controls><select id=tf aria-label="Filter"><option value=all>All</option><option value=overdue>Overdue</option><option value=upcoming>Upcoming</option></select>
+      <select id=ts aria-label="Sort"><option value=dates>Sort by dates</option><option value=courses>Sort by courses</option></select>
+      <input id=tq placeholder="Search by activity type or name" aria-label="Search"></div>
+      <div id=tl></div><button id=more>Show more activities</button>
+      <h2 style="margin-top:36px">Attendance by course</h2>
+      <table><tr><th>Course</th><th>Present</th><th>%</th><th></th></tr>`+
+      (att.map(x=>{const p=Math.round(100*x.present/x.total);
+        return `<tr><td>${esc(x.course)}</td><td>${x.present}/${x.total}</td><td>${p}%</td><td>${bar(p)}</td></tr>`}).join("")||"<tr><td colspan=4>No data.</td></tr>")+"</table>";
+    let shown=5;
+    const draw=()=>{
+      const f=$("#tf").value,q=$("#tq").value.trim().toLowerCase(),byCourse=$("#ts").value==="courses";
+      let list=todo.filter(x=>(f==="all"||(f==="overdue")===x.overdue)&&
+        (!q||[x.title,x.type,x.course,x.teacher,ctl[x.control_form]].join(" ").toLowerCase().includes(q)));
+      if(byCourse)list.sort((a,b)=>a.course.localeCompare(b.course)||(a.due_date+a.due_time).localeCompare(b.due_date+b.due_time));
+      else list.sort((a,b)=>(a.due_date+a.due_time).localeCompare(b.due_date+b.due_time));
+      const part=list.slice(0,shown);let last="",html="";
+      part.forEach(x=>{const key=byCourse?x.course:x.due_date;
+        if(key!==last){html+=`<div class=tl-day>${esc(byCourse?x.course:day(x.due_date))}</div>`;last=key}
+        html+=`<div class=tl-item><div class=tl-time>${esc(x.due_time)}</div>${ico}<div class=tl-body>
+          <div><b>${esc(x.title)}</b> <span class="badge ctl">${esc(ctl[x.control_form]||x.control_form)}</span>${x.overdue?'<span class="badge od">Overdue</span>':""}</div>
+          <small>${esc(x.type)} is due &middot; ${esc(x.course)} | ${esc(x.teacher)}</small></div></div>`});
+      $("#tl").innerHTML=html||"<p>No activities.</p>";
+      $("#more").style.display=list.length>shown?"inline-block":"none";
+    };
+    ["#tf","#ts"].forEach(s=>$(s).onchange=()=>{shown=5;draw()});
+    $("#tq").oninput=()=>{shown=5;draw()};
+    $("#more").onclick=()=>{shown+=5;draw()};
+    draw();
+  }else if(v==="attendance"){
+    const a=await api("/attendance");
+    el.innerHTML="<h2>Attendance</h2><table><tr><th>Course</th><th>Present</th><th></th></tr>"+a.map(x=>{const p=Math.round(100*x.present/x.total);
+      return `<tr><td>${esc(x.course)}</td><td>${x.present}/${x.total}</td><td>${bar(p)}</td></tr>`}).join("")+"</table>";
+  }else if(v==="grades"){
+    const g=await api("/grades");
+    el.innerHTML="<h2>Grades</h2><table><tr><th>Course</th><th>Score</th><th></th></tr>"+g.map(x=>{const p=Math.round(100*x.score/x.max_score);
+      return `<tr><td>${esc(x.course)}</td><td>${x.score}/${x.max_score}</td><td>${bar(p)}</td></tr>`}).join("")+"</table>";
+  }else{
+    const [g,c]=await Promise.all([api("/groups"),api("/courses")]);
+    el.innerHTML=`<h2>Project groups</h2>
+    <form id="gf"><input id="gn" placeholder="Group name" required maxlength="60">
+    <select id="gc">${c.map(x=>`<option value=${x.id}>${esc(x.title)}</option>`).join("")}</select>
+    <input id="gs" type="number" min="2" max="6" value="4" style="width:80px" aria-label="Max size">
+    <button>Create group</button></form><div class=msg id="gm"></div>
+    <div class=cards>${g.map(x=>card(`<b>${esc(x.name)}</b><br><small>${esc(x.course)} · ${x.members}/${x.max_size}</small>`,
+      `<button data-d=${x.id}>Delete</button>`)).join("")||"<p>No groups yet.</p>"}</div>`;
+    $("#gf").onsubmit=async e=>{e.preventDefault();
+      try{await api("/groups",{method:"POST",body:JSON.stringify({name:$("#gn").value,course_id:$("#gc").value,max_size:$("#gs").value})});await show("groups");$("#gm").style.color="#27ae60";$("#gm").textContent="Group created and saved to the database"}
+      catch(er){$("#gm").textContent=er.message}};
+    el.querySelectorAll("[data-d]").forEach(b=>b.onclick=async()=>{if(!confirm("Delete this group?"))return;try{await api("/groups/"+b.dataset.d,{method:"DELETE"});await show("groups");$("#gm").style.color="#27ae60";$("#gm").textContent="Group deleted from the database"}catch(er){$("#gm").textContent=er.message}});
+  }}catch(e){el.innerHTML="<p class=msg>"+esc(e.message)+"</p>"}
+}
+if(token)start();
+</script>
+</body>
+</html>
