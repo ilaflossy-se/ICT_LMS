@@ -382,11 +382,6 @@ def icons(filename):
     return send_from_directory("static/icons", filename)
 
 
-@app.get("/login-bg.jpg")
-def login_bg():
-    return send_from_directory("static", "login-bg.jpg")
-
-
 def current_user():
     token = request.headers.get("Authorization", "")
     session = SESSIONS.get(token)

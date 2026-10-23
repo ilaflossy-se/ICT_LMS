@@ -55,7 +55,7 @@ button {
     justify-content: center;
     gap: 36px;
     padding: 16px;
-    background: linear-gradient(#0008,#0008),url(login-bg.jpg) center/cover,linear-gradient(135deg,#27406b,#111);
+    background: linear-gradient(135deg,#27406b,#111);
 }
 .logo {
     width: 220px;
@@ -156,7 +156,7 @@ button {
 .menu img {
     mix-blend-mode: multiply;
 }
-.rail img,.logo,.ms img {
+.rail img {
     mix-blend-mode: screen;
 }
 :root[data-theme=dark] .menu img {
@@ -409,11 +409,10 @@ form {
 </head>
 <body>
 <div id="login">
-  <img class="logo" src="icons/logo.jpg" alt="Astana IT University">
   <div class="lbox">
     <input id="email" type="email" value="260002@astanait.edu.kz" autocomplete="username" aria-label="University email">
     <div class="pw"><input id="password" type="password" placeholder="Password" autocomplete="current-password" aria-label="Password"><button type="button" id="showpw" aria-label="Show password">Show</button></div>
-    <button class="ms" id="signin"><img src="icons/office.jpg" alt="" width="30" height="30">Sign in</button>
+    <button class="ms" id="signin">Sign in</button>
     <div class="msg" id="lmsg"></div>
   </div>
 </div>
