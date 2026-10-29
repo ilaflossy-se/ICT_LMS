@@ -39,7 +39,7 @@ body {
     background: var(--bg);
     color: var(--text);
 }
-button,input,select {
+button,input,select,textarea {
     font: inherit;
     color: var(--text);
     min-height: 44px;
@@ -431,9 +431,31 @@ form {
 @media (prefers-reduced-motion: reduce) {
     * { animation: none !important; transition: none !important; }
 }
+
+body[data-role=student] [data-r=t], body[data-role=student] [data-r=a],
+body[data-role=teacher] [data-r=s], body[data-role=teacher] [data-r=a], body[data-role=teacher] [data-r=sa],
+body[data-role=admin] [data-r=s], body[data-role=admin] [data-r=t], body[data-role=admin] [data-r=st] { display: none !important; }
+.badge.ok { background: #1e7a3c; }
+td .row input { flex: 1 1 160px; min-width: 120px; }
+textarea { min-height: 64px; padding: 10px 12px; resize: vertical; }
+form.lab { align-items: flex-end; }
+.f { display: flex; flex-direction: column; gap: 2px; font-size: 12px; }
+.f input, .f select, .f textarea { font-size: 16px; }
+.role { font-size: 11px; font-weight: 700; opacity: .75; text-transform: uppercase; letter-spacing: .04em; }
+.left { font-size: 12px; margin-top: 2px; }
+.left.od { color: var(--err); font-weight: 700; }
+.row { display: flex; gap: 8px; flex-wrap: wrap; }
+.row select { flex: 1; min-width: 0; }
+.gboxes { display: grid; grid-template-columns: repeat(auto-fill,minmax(270px,1fr)); gap: 20px; }
+.gbox { background: var(--card); border-radius: 10px; padding: 16px; box-shadow: var(--sh); display: flex; flex-direction: column; gap: 10px; min-width: 0; }
+.gbox ul { list-style: none; margin: 0; padding: 0; }
+.gbox li { display: flex; justify-content: space-between; align-items: center; gap: 8px; padding: 4px 0; border-bottom: 1px solid #8886; }
+.gbox li span { min-width: 0; overflow-wrap: anywhere; }
+button:disabled, select:disabled { opacity: .5; cursor: not-allowed; }
 </style>
 </head>
 <body>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true"><symbol id="i-cal" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="17" rx="2"/><path d="M8 2v4M16 2v4M3 10h18"/></symbol><symbol id="i-doc" viewBox="0 0 24 24"><path d="M6 3h9l4 4v14H6z"/><path d="M14 3v5h5M9 13h7M9 17h7"/></symbol></svg>
 <div id="login">
   <img class="logo" src="icons/logo.svg" alt="LMS redesign prototype logo" width="96" height="96">
   <div class="lbox">
@@ -447,20 +469,24 @@ form {
 <div id="app">
   <div class="leftcol">
     <div class="rail">
-      <button data-v="dashboard" class="on" title="Home" aria-label="Home"><svg class="ico" aria-hidden="true" focusable="false"><use href="icons/sprite.svg#i-home"/></svg></button>
-      <button data-v="groups" title="Project groups" aria-label="Project groups"><svg class="ico" aria-hidden="true" focusable="false"><use href="icons/sprite.svg#i-chat"/></svg></button>
-      <button data-v="grades" title="Grades" aria-label="Grades"><svg class="ico" aria-hidden="true" focusable="false"><use href="icons/sprite.svg#i-notes"/></svg></button>
+      <button data-v="dashboard" data-r="st" class="on" title="Home" aria-label="Home"><svg class="ico" aria-hidden="true" focusable="false"><use href="icons/sprite.svg#i-home"/></svg></button>
+      <button data-v="groups" data-r="st" title="Project groups" aria-label="Project groups"><svg class="ico" aria-hidden="true" focusable="false"><use href="icons/sprite.svg#i-chat"/></svg></button>
+      <button data-v="grades" data-r="s" title="Grades" aria-label="Grades"><svg class="ico" aria-hidden="true" focusable="false"><use href="icons/sprite.svg#i-notes"/></svg></button>
     </div>
     <div class="tools"><button id="snd" title="Sound on" aria-label="Notification sound" aria-pressed="true">&#9834;</button><button id="theme" title="Dark mode">&#9790;</button></div>
   </div>
   <div class="side">
-    <button class="user" id="user"><span>&#128100;</span><div><div id="uname">Student name</div><div id="umail"></div></div></button>
+    <button class="user" id="user"><span>&#128100;</span><div><div id="uname">Name</div><div class="role" id="urole"></div><div id="umail"></div></div></button>
     <button id="lo">&#10162; Log out</button>
     <nav class="menu">
-      <button data-v="dashboard"><svg class="ico" aria-hidden="true" focusable="false"><use href="icons/sprite.svg#i-dashboard"/></svg>Dashboard</button>
-      <button data-v="courses" class="on"><svg class="ico" aria-hidden="true" focusable="false"><use href="icons/sprite.svg#i-courses"/></svg>My courses</button>
-      <button data-v="attendance"><svg class="ico" aria-hidden="true" focusable="false"><use href="icons/sprite.svg#i-attendance"/></svg>Attendance</button>
-      <button data-v="grades"><svg class="ico" aria-hidden="true" focusable="false"><use href="icons/sprite.svg#i-grades"/></svg>Grades</button>
+      <button data-v="dashboard" data-r="st"><svg class="ico" aria-hidden="true" focusable="false"><use href="icons/sprite.svg#i-dashboard"/></svg>Dashboard</button>
+      <button data-v="courses" data-r="st" class="on"><svg class="ico" aria-hidden="true" focusable="false"><use href="icons/sprite.svg#i-courses"/></svg>My courses</button>
+      <button data-v="schedule" data-r="st"><svg class="ico" aria-hidden="true" focusable="false"><use href="#i-cal"/></svg>Schedule</button>
+      <button data-v="assignments" data-r="st"><svg class="ico" aria-hidden="true" focusable="false"><use href="icons/sprite.svg#i-notes"/></svg>Assignments</button>
+      <button data-v="groups" data-r="st"><svg class="ico" aria-hidden="true" focusable="false"><use href="icons/sprite.svg#i-chat"/></svg>Project groups</button>
+      <button data-v="applications" data-r="sa"><svg class="ico" aria-hidden="true" focusable="false"><use href="#i-doc"/></svg>Applications</button>
+      <button data-v="attendance" data-r="s"><svg class="ico" aria-hidden="true" focusable="false"><use href="icons/sprite.svg#i-attendance"/></svg>Attendance</button>
+      <button data-v="grades" data-r="s"><svg class="ico" aria-hidden="true" focusable="false"><use href="icons/sprite.svg#i-grades"/></svg>Grades</button>
     </nav>
   </div>
   <main id="view"></main>
@@ -482,7 +508,7 @@ const mask=e=>e.replace(/^(\d\d)\d+@/,"$1*****@");
 $("#signin").onclick=async()=>{
   try{const d=await api("/login",{method:"POST",body:JSON.stringify({email:$("#email").value,password:$("#password").value})});
     $("#password").value="";$("#lmsg").textContent="";
-    token=d.token;sessionStorage.setItem("t",token);sessionStorage.setItem("n",d.name);sessionStorage.setItem("m",d.email);start();}
+    token=d.token;sessionStorage.setItem("t",token);sessionStorage.setItem("n",d.name);sessionStorage.setItem("m",d.email);sessionStorage.setItem("r",d.role);start();}
   catch(e){$("#password").value="";$("#lmsg").textContent=e.message}
 };
 ["#email","#password"].forEach(s=>$(s).addEventListener("keydown",e=>{if(e.key==="Enter")$("#signin").click()}));
@@ -496,41 +522,57 @@ $("#snd").onclick=()=>{sound=!sound;$("#snd").setAttribute("aria-pressed",sound)
 $("#theme").onclick=()=>{const r=document.documentElement;r.dataset.theme=r.dataset.theme==="dark"?"":"dark"};
 document.querySelectorAll("[data-v]").forEach(b=>b.onclick=()=>show(b.dataset.v));
 
-function start(){$("#login").style.display="none";$("#app").style.display="grid";
-  $("#uname").textContent=sessionStorage.getItem("n");$("#umail").textContent=mask(sessionStorage.getItem("m"))+" \u25BE";show("courses")}
+function start(){const R=sessionStorage.getItem("r");document.body.dataset.role=R==="teacher"||R==="admin"?R:"student";   // no "r" saved = student
+  $("#urole").textContent={teacher:"Teacher",admin:"Admin"}[document.body.dataset.role]||"Student";$("#login").style.display="none";$("#app").style.display="grid";
+  $("#uname").textContent=sessionStorage.getItem("n");$("#umail").textContent=mask(sessionStorage.getItem("m"))+" \u25BE";show(document.body.dataset.role==="admin"?"applications":"courses")}
 
 const card=(t,s)=>`<div class=card><div class=top>${t}</div><div class=strip>${s}</div></div>`;
 const cover=(id,i)=>{const n=id%5;   // first two covers are above the fold -> eager, the rest lazy
   return `<img class=cover src="media/cover-${n}-640.webp" srcset="media/cover-${n}-320.webp 320w, media/cover-${n}-640.webp 640w" sizes="(max-width:600px) 90vw, 240px" width=320 height=180 alt="" ${i<2?"":"loading=lazy "}decoding=async>`};
 const bar=p=>`<div class=bar><i style="width:${p}%"></i></div>`;
 
+const T=()=>document.body.dataset.role==="teacher";
+const WD=["","Monday","Tuesday","Wednesday","Thursday","Friday","Saturday","Sunday"];
+const fmtDate=s=>new Date(s+"T00:00:00Z").toLocaleDateString("en-GB",{timeZone:"UTC",weekday:"short",day:"numeric",month:"short",year:"numeric"});
+const left=s=>{const a=Math.abs(s),d=Math.floor(a/86400),h=Math.floor(a%86400/3600),m=Math.floor(a%3600/60);
+  const t=d?`${d}d ${h}h`:h?`${h}h ${m}m`:`${m}m`;return s<0?`overdue by ${t}`:`${t} left`};
+const note=(ok,txt)=>{const m=$("#note");if(!m)return;m.className="msg"+(ok?" ok":"");m.textContent=txt};
+const opts=(list,val,name)=>list.map(x=>`<option value=${x[val]}>${esc(name(x))}</option>`).join("");
+
 async function show(v){
   document.querySelectorAll("[data-v]").forEach(b=>b.classList.toggle("on",b.dataset.v===v));
-  const el=$("#view");
+  const el=$("#view"),t=T();
+  // runs a teacher action, redraws the page and shows the result message
+  const act=async(fn,okMsg)=>{try{await fn();await show(v);note(true,okMsg);ping()}catch(er){note(false,er.message)}};
+  const post=(path,body)=>api(path,{method:"POST",body:JSON.stringify(body)});
+  const del=path=>api(path,{method:"DELETE"});
   try{
   if(v==="courses"){
     el.innerHTML="<h2>My courses</h2><div class=cards aria-busy=true>"+'<div class="card sk" aria-hidden=true><div class=top></div><div class=strip></div></div>'.repeat(5)+"</div>";
     const c=await api("/courses");
-    el.innerHTML="<h2>My courses</h2><div class=cards>"+c.map((x,i)=>card(cover(x.id,i)+`<b>${esc(x.title)}</b><br><small>${esc(x.code)}</small>`,esc(x.teacher))).join("")+"</div>";
+    el.innerHTML="<h2>My courses</h2><div class=cards>"+(c.map((x,i)=>card(cover(x.id,i)+`<b>${esc(x.title)}</b><br><small>${esc(x.code)}</small>`,
+      t?`${x.students} students`:esc(x.teacher))).join("")||"<p>No courses.</p>")+"</div>";
   }else if(v==="dashboard"){
-    const [d,all,att]=await Promise.all([api("/dashboard"),api("/assignments"),api("/attendance")]);
-    const todo=all.filter(x=>x.score===null);   // not graded yet = still to do
+    const [d,all,att]=await Promise.all([api("/dashboard"),api("/assignments"),t?Promise.resolve([]):api("/attendance")]);
+    const todo=all.filter(x=>x.score===null);   // not graded yet = still to do (for a teacher: every task)
     const ctl={current:"Current",midterm:"Midterm",final:"Final"};
     const ico='<svg class="ico tl-ico" aria-hidden="true" focusable="false"><use href="icons/sprite.svg#i-notes"/></svg>';
     const day=s=>{const t=new Date(s+"T00:00:00Z"),o={timeZone:"UTC"};
       return t.toLocaleDateString("en-US",{...o,weekday:"long"})+", "+t.getUTCDate()+" "+t.toLocaleDateString("en-US",{...o,month:"long"})+" "+t.getUTCFullYear()};
-    el.innerHTML="<h2>Dashboard</h2><div class=cards>"+
-      card(`<div class=big>${d.courses}</div>`,"Courses")+card(`<div class=big>${d.avg_grade}%</div>`,"Average grade")+
-      card(`<div class=big>${d.groups}</div>`,"Project groups")+"</div>"+
-      `<h2 style="margin-top:36px">Timeline</h2>
-      <div class=tl-controls><select id=tf aria-label="Filter"><option value=all>All</option><option value=overdue>Overdue</option><option value=upcoming>Upcoming</option></select>
-      <select id=ts aria-label="Sort"><option value=dates>Sort by dates</option><option value=courses>Sort by courses</option></select>
-      <input id=tq placeholder="Search by activity type or name" aria-label="Search"></div>
-      <div id=tl></div><button id=more>Show more activities</button>
-      <h2 style="margin-top:36px">Attendance by course</h2>
+    const cards=t?card(`<div class=big>${d.courses}</div>`,"Courses")+card(`<div class=big>${d.students}</div>`,"Students")+
+        card(`<div class=big>${d.groups}</div>`,"Project groups")+card(`<div class=big>${d.assignments}</div>`,"Open assignments")
+      :card(`<div class=big>${d.courses}</div>`,"Courses")+card(`<div class=big>${d.avg_grade}%</div>`,"Average grade")+
+        card(`<div class=big>${d.groups}</div>`,"Project groups");
+    const attTable=t?"":`<h2 style="margin-top:36px">Attendance by course</h2>
       <table><tr><th>Course</th><th>Present</th><th>%</th><th></th></tr>`+
       (att.map(x=>{const p=Math.round(100*x.present/x.total);
         return `<tr><td>${esc(x.course)}</td><td>${x.present}/${x.total}</td><td>${p}%</td><td>${bar(p)}</td></tr>`}).join("")||"<tr><td colspan=4>No data.</td></tr>")+"</table>";
+    el.innerHTML="<h2>Dashboard</h2><div class=cards>"+cards+"</div>"+
+      `<h2 style="margin-top:36px">${t?"Deadlines of your courses":"Timeline"}</h2>
+      <div class=tl-controls><select id=tf aria-label="Filter"><option value=all>All</option><option value=overdue>Overdue</option><option value=upcoming>Upcoming</option></select>
+      <select id=ts aria-label="Sort"><option value=dates>Sort by dates</option><option value=courses>Sort by courses</option></select>
+      <input id=tq placeholder="Search by activity type or name" aria-label="Search"></div>
+      <div id=tl></div><button id=more>Show more activities</button>`+attTable;
     let shown=5;
     const draw=()=>{
       const f=$("#tf").value,q=$("#tq").value.trim().toLowerCase(),byCourse=$("#ts").value==="courses";
@@ -543,7 +585,8 @@ async function show(v){
         if(key!==last){html+=`<div class=tl-day>${esc(byCourse?x.course:day(x.due_date))}</div>`;last=key}
         html+=`<div class=tl-item><div class=tl-time>${esc(x.due_time)}</div>${ico}<div class=tl-body>
           <div><b>${esc(x.title)}</b> <span class="badge ctl">${esc(ctl[x.control_form]||x.control_form)}</span>${x.overdue?'<span class="badge od">Overdue</span>':""}</div>
-          <small>${esc(x.type)} is due &middot; ${esc(x.course)} | ${esc(x.teacher)}</small></div></div>`});
+          <small>${esc(x.type)} is due &middot; ${esc(x.course)}${t?"":" | "+esc(x.teacher)}</small>
+          <div class="left${x.overdue?" od":""}">Deadline: ${esc(fmtDate(x.due_date))}, ${esc(x.due_time)} &middot; ${esc(left(x.seconds_left))}</div></div></div>`});
       $("#tl").innerHTML=html||"<p>No activities.</p>";
       $("#more").style.display=list.length>shown?"inline-block":"none";
     };
@@ -551,6 +594,96 @@ async function show(v){
     $("#tq").oninput=()=>{shown=5;draw()};
     $("#more").onclick=()=>{shown+=5;draw()};
     draw();
+  }else if(v==="schedule"){
+    const [s,c]=await Promise.all([api("/schedule"),t?api("/courses"):Promise.resolve([])]);
+    const today=(new Date().getDay()+6)%7+1;   // JS: Sunday = 0 -> our Monday = 1 ... Sunday = 7
+    const ico='<svg class="ico tl-ico" aria-hidden="true" focusable="false"><use href="#i-cal"/></svg>';
+    const form=!t?"":`<form id=sf class=lab>
+      <label class=f>Course<select id=sc required>${opts(c,"id",x=>x.title)}</select></label>
+      <label class=f>Day<select id=sd>${[1,2,3,4,5,6].map(i=>`<option value=${i}>${WD[i]}</option>`).join("")}</select></label>
+      <label class=f>Start<input id=ss type=time value=09:00 required></label>
+      <label class=f>End<input id=se type=time value=10:30 required></label>
+      <label class=f>Room<input id=sr maxlength=20 placeholder="C1.101" required style="width:110px"></label>
+      <label class=f>Type<select id=sk><option>Lecture</option><option>Practice</option><option>Lab</option></select></label>
+      <button>Add class</button></form>`;
+    let html="";
+    for(let d=1;d<=7;d++){
+      const day=s.filter(x=>x.weekday===d);
+      if(d===7&&!day.length)continue;
+      html+=`<div class=tl-day>${WD[d]}${d===today?' <span class=badge>Today</span>':""}</div>`+
+        (day.map(x=>`<div class=tl-item><div class=tl-time style="width:100px">${esc(x.starts)}&ndash;${esc(x.ends)}</div>${ico}<div class=tl-body>
+          <div><b>${esc(x.course)}</b> <span class=badge>${esc(x.kind)}</span></div>
+          <small>Room ${esc(x.room)}${t?"":" | "+esc(x.teacher)}</small></div>
+          ${t?`<button data-sd=${x.id} style="margin-left:auto">Delete</button>`:""}</div>`).join("")||"<p><small>No classes</small></p>");
+    }
+    el.innerHTML="<h2>Schedule</h2>"+form+'<div class=msg id=note role=status></div>'+(s.length||t?html:"<p>No classes yet.</p>");
+    if(t){
+      $("#sf").onsubmit=e=>{e.preventDefault();
+        act(()=>post("/schedule",{course_id:$("#sc").value,weekday:$("#sd").value,start:$("#ss").value,end:$("#se").value,room:$("#sr").value,kind:$("#sk").value}),"Class added to the schedule")};
+      el.querySelectorAll("[data-sd]").forEach(b=>b.onclick=()=>{if(confirm("Delete this class?"))act(()=>del("/schedule/"+b.dataset.sd),"Class deleted")});
+    }
+  }else if(v==="assignments"){
+    const [a,c,ty]=await Promise.all([api("/assignments"),t?api("/courses"):Promise.resolve([]),t?api("/assignment-types"):Promise.resolve([])]);
+    const today=new Date().toLocaleDateString("sv-SE");   // local YYYY-MM-DD for the date picker
+    const ctl={current:"Current",midterm:"Midterm",final:"Final"};
+    const form=!t?"":`<form id=af class=lab>
+      <label class=f>Course<select id=ac required>${opts(c,"id",x=>x.title)}</select></label>
+      <label class=f>Title<input id=at required maxlength=100 placeholder="Homework 3"></label>
+      <label class=f>Type<select id=aty>${opts(ty,"id",x=>x.name)}</select></label>
+      <label class=f>Control<select id=acf><option value=current>Current</option><option value=midterm>Midterm</option><option value=final>Final</option></select></label>
+      <label class=f>Max score<input id=am type=number min=1 max=1000 step=any value=10 required style="width:100px"></label>
+      <label class=f>Deadline date<input id=ad type=date min=${today} required></label>
+      <label class=f>Deadline time<input id=atm type=time value=23:59 required></label>
+      <label class=f style="flex:1 1 100%">Description<textarea id=adesc maxlength=1000 placeholder="What students must do (optional)"></textarea></label>
+      <button>Add assignment</button></form>`;
+    // student: tasks still to do first; teacher: running tasks before overdue ones (stable sort keeps the date order)
+    const list=a.slice().sort((x,y)=>(t?x.overdue-y.overdue:(x.score!==null)-(y.score!==null)));
+    const rowsHtml=list.map(x=>`<tr><td><b>${esc(x.title)}</b> <span class="badge ctl">${esc(ctl[x.control_form]||x.control_form)}</span>
+        <br><small>${esc(x.type)} &middot; max ${esc(x.max_score)}</small>${x.description?`<br><small>${esc(x.description)}</small>`:""}</td>
+      <td>${esc(x.course)}${t?"":`<br><small>${esc(x.teacher)}</small>`}</td>
+      <td>${esc(fmtDate(x.due_date))}, <b>${esc(x.due_time)}</b>${x.score!==null?"":`<br><span class="left${x.overdue?" od":""}">${esc(left(x.seconds_left))}</span>`}</td>
+      <td>${t?`<button data-ad=${x.id}>Delete</button>`:x.score!==null?`${esc(x.score)}/${esc(x.max_score)}`:x.overdue?'<span class="badge od">Overdue</span>':"To do"}</td></tr>`).join("");
+    el.innerHTML="<h2>Assignments</h2>"+form+'<div class=msg id=note role=status></div>'+
+      `<table><tr><th>Task</th><th>Course</th><th>Deadline</th><th>${t?"":"Status"}</th></tr>${rowsHtml||"<tr><td colspan=4>No assignments.</td></tr>"}</table>`;
+    if(t){
+      $("#af").onsubmit=e=>{e.preventDefault();
+        act(()=>post("/assignments",{course_id:$("#ac").value,title:$("#at").value,type_id:$("#aty").value,control_form:$("#acf").value,
+          max_score:$("#am").value,due_date:$("#ad").value,due_time:$("#atm").value,description:$("#adesc").value}),"Assignment added")};
+      el.querySelectorAll("[data-ad]").forEach(b=>b.onclick=()=>{if(confirm("Delete this assignment?"))act(()=>del("/assignments/"+b.dataset.ad),"Assignment deleted")});
+    }
+  }else if(v==="applications"){
+    const adm=document.body.dataset.role==="admin";
+    const [a,ty]=await Promise.all([api("/applications"),adm?Promise.resolve([]):api("/application-types")]);
+    const st={pending:["Pending",""],approved:["Approved"," ok"],rejected:["Rejected"," od"]};
+    const badge=s=>`<span class="badge${st[s][1]}">${st[s][0]}</span>`;
+    if(!adm){
+      const rowsHtml=a.map(x=>`<tr><td>${esc(x.created_at)}</td><td><b>${esc(x.type_title)}</b></td><td>${esc(x.message)}</td>
+        <td>${badge(x.status)}${x.review_comment?`<br><small>${esc(x.review_comment)}</small>`:""}</td>
+        <td>${x.status==="pending"?`<button data-w=${x.id}>Withdraw</button>`:""}</td></tr>`).join("");
+      el.innerHTML=`<h2>Applications</h2><form id=pf class=lab>
+        <label class=f>Type<select id=pt>${opts(ty,"id",x=>x.title)}</select></label>
+        <label class=f style="flex:1 1 300px">Message<textarea id=pm required maxlength=1000 placeholder="Explain your application"></textarea></label>
+        <button>Submit application</button></form><div class=msg id=note role=status></div>
+        <table><tr><th>Date</th><th>Type</th><th>Message</th><th>Status</th><th></th></tr>${rowsHtml||"<tr><td colspan=5>No applications yet.</td></tr>"}</table>`;
+      $("#pf").onsubmit=e=>{e.preventDefault();act(()=>post("/applications",{type_id:$("#pt").value,message:$("#pm").value}),"Application submitted")};
+      el.querySelectorAll("[data-w]").forEach(b=>b.onclick=()=>{if(confirm("Withdraw this application?"))act(()=>del("/applications/"+b.dataset.w),"Application withdrawn")});
+    }else{
+      el.innerHTML=`<h2>Applications</h2><div class=tl-controls><select id=pfl aria-label="Status filter">
+        <option value=pending>Pending</option><option value=all>All</option><option value=approved>Approved</option><option value=rejected>Rejected</option></select></div>
+        <div class=msg id=note role=status></div><div id=pl></div>`;
+      const draw=()=>{
+        const f=$("#pfl").value,list=a.filter(x=>f==="all"||x.status===f);
+        $("#pl").innerHTML=`<table><tr><th>Student</th><th>Type</th><th>Message</th><th>Date</th><th>Decision</th></tr>`+(list.map(x=>`<tr>
+          <td>${esc(x.student)}<br><small>${esc(x.email)}</small></td><td><b>${esc(x.type_title)}</b></td><td>${esc(x.message)}</td><td>${esc(x.created_at)}</td>
+          <td>${x.status==="pending"?`<div class=row><input data-c=${x.id} maxlength=500 placeholder="Comment (required to reject)" aria-label="Comment">
+            <button data-ap=${x.id}>Approve</button><button data-rj=${x.id}>Reject</button></div>`
+            :`${badge(x.status)}${x.review_comment?`<br><small>${esc(x.review_comment)}</small>`:""}`}</td></tr>`).join("")||"<tr><td colspan=5>No applications.</td></tr>")+"</table>";
+        const review=(id,decision)=>act(()=>post("/applications/"+id+"/review",{decision,comment:$("[data-c='"+id+"']").value}),decision==="approved"?"Application approved":"Application rejected");
+        el.querySelectorAll("[data-ap]").forEach(b=>b.onclick=()=>review(b.dataset.ap,"approved"));
+        el.querySelectorAll("[data-rj]").forEach(b=>b.onclick=()=>review(b.dataset.rj,"rejected"));
+      };
+      $("#pfl").onchange=draw;draw();
+    }
   }else if(v==="attendance"){
     const a=await api("/attendance");
     el.innerHTML="<h2>Attendance</h2><table><tr><th>Course</th><th>Present</th><th></th></tr>"+a.map(x=>{const p=Math.round(100*x.present/x.total);
@@ -560,18 +693,37 @@ async function show(v){
     el.innerHTML="<h2>Grades</h2><table><tr><th>Course</th><th>Score</th><th></th></tr>"+g.map(x=>{const p=Math.round(100*x.score/x.max_score);
       return `<tr><td>${esc(x.course)}</td><td>${x.score}/${x.max_score}</td><td>${bar(p)}</td></tr>`}).join("")+"</table>";
   }else{
-    const [g,c]=await Promise.all([api("/groups"),api("/courses")]);
-    el.innerHTML=`<h2>Project groups</h2>
-    <form id="gf"><input id="gn" placeholder="Group name" required maxlength="60">
-    <select id="gc">${c.map(x=>`<option value=${x.id}>${esc(x.title)}</option>`).join("")}</select>
-    <input id="gs" type="number" min="2" max="6" value="4" style="width:80px" aria-label="Max size">
-    <button>Create group</button></form><div class=msg id="gm" role="status"></div>
-    <div class=cards>${g.map(x=>card(`<b>${esc(x.name)}</b><br><small>${esc(x.course)} · ${x.members}/${x.max_size}</small>`,
-      `<button data-d=${x.id}>Delete</button>`)).join("")||"<p>No groups yet.</p>"}</div>`;
-    $("#gf").onsubmit=async e=>{e.preventDefault();
-      try{await api("/groups",{method:"POST",body:JSON.stringify({name:$("#gn").value,course_id:$("#gc").value,max_size:$("#gs").value})});await show("groups");$("#gm").className="msg ok";$("#gm").textContent="Group created and saved to the database";ping()}
-      catch(er){$("#gm").textContent=er.message}};
-    el.querySelectorAll("[data-d]").forEach(b=>b.onclick=async()=>{if(!confirm("Delete this group?"))return;try{await api("/groups/"+b.dataset.d,{method:"DELETE"});await show("groups");$("#gm").className="msg ok";$("#gm").textContent="Group deleted from the database";ping()}catch(er){$("#gm").textContent=er.message}});
+    const [g,c]=await Promise.all([api("/groups"),t?api("/courses"):Promise.resolve([])]);
+    const studs={};   // course id -> students of the course (teacher only, needed for the "add student" lists)
+    if(t)await Promise.all(c.map(async x=>{studs[x.id]=await api("/courses/"+x.id+"/students")}));
+    const form=!t?"":`<form id=gf class=lab>
+      <label class=f>Group name<input id=gn placeholder="Team Alpha" required maxlength=60></label>
+      <label class=f>Course<select id=gc>${opts(c,"id",x=>x.title)}</select></label>
+      <label class=f>Max size<input id=gs type=number min=2 max=6 value=4 style="width:80px"></label>
+      <button>Create group</button></form>`;
+    const box=x=>{
+      const people=x.participants.map(p=>`<li><span>${esc(p.name)}${p.email?` <small>${esc(p.email)}</small>`:""}</span>
+        ${t?`<button data-rg=${x.id} data-ru=${p.id} aria-label="Remove ${esc(p.name)}">Remove</button>`:""}</li>`).join("")||"<li><small>No participants yet</small></li>";
+      let manage="";
+      if(t){
+        const free=(studs[x.course_id]||[]).filter(s=>s.group_id===null);
+        const full=x.members>=x.max_size;
+        manage=`<div class=row><select id=sel-${x.id} aria-label="Student to add" ${full||!free.length?"disabled":""}>
+            ${free.map(s=>`<option value=${s.id}>${esc(s.name)} (${esc(s.email)})</option>`).join("")||"<option>No free students</option>"}</select>
+          <button data-ag=${x.id} ${full||!free.length?"disabled":""}>${full?"Group is full":"Add student"}</button></div>
+          <button data-d=${x.id}>Delete group</button>`;
+      }
+      return `<div class=gbox><div><b>${esc(x.name)}</b><br><small>${esc(x.course)} &middot; ${x.members}/${x.max_size} participants</small></div>
+        <ul>${people}</ul>${manage}</div>`};
+    el.innerHTML="<h2>Project groups</h2>"+form+'<div class=msg id=note role=status></div>'+
+      `<div class=gboxes>${g.map(box).join("")||(t?"<p>No groups yet.</p>":"<p>You are not in a project group yet. Your teacher adds students to groups.</p>")}</div>`;
+    if(t){
+      $("#gf").onsubmit=e=>{e.preventDefault();
+        act(()=>post("/groups",{name:$("#gn").value,course_id:$("#gc").value,max_size:$("#gs").value}),"Group created")};
+      el.querySelectorAll("[data-ag]").forEach(b=>b.onclick=()=>act(()=>post("/groups/"+b.dataset.ag+"/members",{user_id:$("#sel-"+b.dataset.ag).value}),"Student added to the group"));
+      el.querySelectorAll("[data-rg]").forEach(b=>b.onclick=()=>{if(confirm("Remove this student from the group?"))act(()=>del("/groups/"+b.dataset.rg+"/members/"+b.dataset.ru),"Student removed")});
+      el.querySelectorAll("[data-d]").forEach(b=>b.onclick=()=>{if(confirm("Delete this group?"))act(()=>del("/groups/"+b.dataset.d),"Group deleted")});
+    }
   }}catch(e){el.innerHTML="<p class=msg>"+esc(e.message)+"</p>"}
 }
 if(token)start();

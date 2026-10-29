@@ -1,5 +1,5 @@
 import os
-from datetime import date, timedelta
+from datetime import date, time as dtime, timedelta
 import random
 import secrets
 import threading
@@ -76,6 +76,7 @@ CREATE TABLE IF NOT EXISTS assignments (
     UNIQUE (course_id, title)
 );
 ALTER TABLE assignments ADD COLUMN IF NOT EXISTS due_time TIME NOT NULL DEFAULT '23:59';
+ALTER TABLE assignments ADD COLUMN IF NOT EXISTS description TEXT NOT NULL DEFAULT '';
 
 CREATE TABLE IF NOT EXISTS grades (
     id SERIAL PRIMARY KEY,
@@ -108,8 +109,45 @@ CREATE TABLE IF NOT EXISTS group_members (
     user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
     PRIMARY KEY (group_id, user_id)
 );
+
+-- weekly timetable: one row = one class that repeats every week
+CREATE TABLE IF NOT EXISTS schedule (
+    id SERIAL PRIMARY KEY,
+    course_id INTEGER NOT NULL REFERENCES courses(id) ON DELETE CASCADE,
+    weekday SMALLINT NOT NULL CHECK (weekday BETWEEN 1 AND 7),   -- 1 = Monday ... 7 = Sunday
+    start_time TIME NOT NULL,
+    end_time TIME NOT NULL,
+    room VARCHAR(20) NOT NULL,
+    kind VARCHAR(20) NOT NULL CHECK (kind IN ('Lecture','Practice','Lab')),
+    CHECK (end_time > start_time)
+);
+CREATE INDEX IF NOT EXISTS idx_schedule_course ON schedule(course_id);
+
+-- kinds of applications a student can submit (IROS, SSQI, SocGPA ...): add a row to add a new kind
+CREATE TABLE IF NOT EXISTS application_types (
+    id SERIAL PRIMARY KEY,
+    code VARCHAR(20) NOT NULL UNIQUE,
+    title VARCHAR(100) NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS applications (
+    id SERIAL PRIMARY KEY,
+    user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    type_id INTEGER NOT NULL REFERENCES application_types(id),
+    message TEXT NOT NULL,
+    status VARCHAR(10) NOT NULL DEFAULT 'pending' CHECK (status IN ('pending','approved','rejected')),
+    created_at TIMESTAMP NOT NULL DEFAULT LOCALTIMESTAMP,
+    reviewed_by INTEGER REFERENCES users(id),
+    reviewed_at TIMESTAMP,
+    review_comment TEXT NOT NULL DEFAULT ''
+);
+-- one pending application of each type per student
+CREATE UNIQUE INDEX IF NOT EXISTS one_pending_application ON applications(user_id, type_id) WHERE status = 'pending';
 """
 
+
+APPLICATION_TYPES = [("IROS", "IROS"), ("SSQI", "SSQI"), ("SocGPA", "SocGPA")]  # code, title
+ADMIN = (200, "admin@astanait.edu.kz", "Registrar Office")  # reviews the applications
 
 ASSIGNMENT_TYPES = ["Quiz", "Homework", "Project", "Midterm Exam", "Final Exam"]
 
@@ -161,6 +199,33 @@ TEACHERS = [
     (109, "g.kenzhebayeva@astanait.edu.kz", "Gulnara Kenzhebayeva"),
     (110, "t.alimov@astanait.edu.kz",       "Timur Alimov"),
 ]
+
+
+# Demo timetable: 5 time slots a day, every course gets 2 classes a week, no two courses share a slot.
+LESSON_SLOTS = [("09:00", "10:30"), ("10:40", "12:10"), ("13:00", "14:30"), ("14:40", "16:10"), ("16:20", "17:50")]
+
+
+def seed_schedule(cur):
+    """Fills an empty timetable (new database or a database made before the timetable existed)."""
+    cur.execute("SELECT COUNT(*) FROM schedule")
+    if cur.fetchone()[0]:
+        return
+    cur.execute("SELECT id FROM courses ORDER BY id")
+    for (course_id,) in cur.fetchall():
+        for k, kind in enumerate(("Lecture", "Practice")):
+            n = ((course_id - 1) % 10) * 2 + k
+            start, end = LESSON_SLOTS[(n // 5) % 5]
+            cur.execute(
+                """INSERT INTO schedule(course_id,weekday,start_time,end_time,room,kind)
+                   VALUES (%s,%s,%s,%s,%s,%s)""",
+                (course_id, n % 5 + 1, start, end, f"C1.{100 + n}", kind))
+
+
+class Refuse(Exception):
+    """Raised inside a request to stop it with a readable JSON error (status + message)."""
+    def __init__(self, status, message):
+        super().__init__(message)
+        self.status = status
 
 
 def hash_password(password):
@@ -330,6 +395,14 @@ def init_db():
                                   COALESCE((SELECT MAX(id) FROM attendance), 1))
                 """)
 
+            seed_schedule(cur)
+            for code, title in APPLICATION_TYPES:
+                cur.execute("INSERT INTO application_types(code,title) VALUES (%s,%s) ON CONFLICT DO NOTHING", (code, title))
+            cur.execute(
+                """INSERT INTO users(id,email,full_name,role,password_hash) VALUES (%s,%s,%s,'admin',%s)
+                   ON CONFLICT DO NOTHING""",
+                (*ADMIN, hash_password(DEMO_PASSWORD)))
+
             # Give every user without a password hash the demo password (each hash has its own salt),
             # then make the column mandatory.
             cur.execute("SELECT id FROM users WHERE password_hash IS NULL")
@@ -359,6 +432,8 @@ def cors(response):
 @app.errorhandler(Exception)
 def handle_error(err):
     """Always answer with JSON so the interface can show a readable message."""
+    if isinstance(err, Refuse):
+        return jsonify(error=str(err)), err.status
     if isinstance(err, HTTPException):
         return jsonify(error=err.description), err.code
     app.logger.exception(err)
@@ -462,11 +537,42 @@ def guard():
     return user, (None if user else (jsonify(error="Not signed in"), 401))
 
 
+def teacher_guard():
+    """Like guard(), but only teachers pass. The UI hides teacher buttons, this is the real protection."""
+    user, error = guard()
+    if error:
+        return None, error
+    if user["role"] != "teacher":
+        return None, (jsonify(error="Only teachers can do this"), 403)
+    return user, None
+
+
+def owns_course(user, course_id):
+    return query_one("SELECT 1 AS found FROM courses WHERE id = %s AND teacher_id = %s",
+                     (course_id, user["id"])) is not None
+
+
+def parse_hhmm(value):
+    """'09:30' -> time(9, 30). Raises ValueError for anything else."""
+    text = str(value).strip()
+    if len(text) != 5:
+        raise ValueError(text)
+    return dtime.fromisoformat(text)
+
+
 @app.get("/api/courses")
 def courses():
     user, error = guard()
     if error:
         return error
+    if user["role"] == "teacher":  # a teacher sees the courses he teaches
+        return jsonify(rows("""
+            SELECT c.id, c.code, c.title, t.full_name AS teacher,
+                   (SELECT COUNT(*) FROM enrollments e WHERE e.course_id = c.id) AS students
+            FROM courses c JOIN users t ON t.id = c.teacher_id
+            WHERE c.teacher_id = %s
+            ORDER BY c.title
+        """, (user["id"],)))
     return jsonify(rows("""
         SELECT c.id, c.code, c.title, t.full_name AS teacher
         FROM enrollments e
@@ -475,6 +581,24 @@ def courses():
         WHERE e.user_id = %s
         ORDER BY c.title
     """, (user["id"],)))
+
+
+@app.get("/api/courses/<int:course_id>/students")
+def course_students(course_id):
+    """Teacher only: students of his course and the group each one is already in (if any)."""
+    user, error = teacher_guard()
+    if error:
+        return error
+    if not owns_course(user, course_id):
+        raise Refuse(403, "This is not your course")
+    return jsonify(rows("""
+        SELECT u.id, u.full_name AS name, u.email,
+               (SELECT p.id FROM group_members m JOIN project_groups p ON p.id = m.group_id
+                WHERE m.user_id = u.id AND p.course_id = e.course_id LIMIT 1) AS group_id
+        FROM enrollments e JOIN users u ON u.id = e.user_id
+        WHERE e.course_id = %s AND u.role = 'student'
+        ORDER BY u.id
+    """, (course_id,)))
 
 
 @app.get("/api/grades")
@@ -491,17 +615,30 @@ def grades():
     """, (user["id"],)))
 
 
+# ---------------------------------------------------------------- assignments and deadlines
+ASSIGNMENT_COLUMNS = """a.id, a.course_id, c.title AS course, teacher.full_name AS teacher, a.title, t.name AS type,
+       a.control_form, a.max_score, a.description, a.due_date::text AS due_date,
+       to_char(a.due_time, 'HH24:MI') AS due_time,
+       (a.due_date + a.due_time) < localtimestamp AS overdue,
+       EXTRACT(EPOCH FROM ((a.due_date + a.due_time) - localtimestamp))::bigint AS seconds_left"""
+
+
 @app.get("/api/assignments")
 def assignments():
     user, error = guard()
     if error:
         return error
-    return jsonify(rows("""
-        SELECT a.id, c.title AS course, teacher.full_name AS teacher, a.title, t.name AS type,
-               a.control_form, a.max_score, a.due_date::text AS due_date,
-               to_char(a.due_time, 'HH24:MI') AS due_time,
-               (a.due_date + a.due_time) < localtimestamp AS overdue,
-               g.score
+    if user["role"] == "teacher":  # all tasks of his own courses
+        return jsonify(rows(f"""
+            SELECT {ASSIGNMENT_COLUMNS}, NULL::numeric AS score
+            FROM assignments a
+            JOIN courses c ON c.id = a.course_id AND c.teacher_id = %s
+            JOIN users teacher ON teacher.id = c.teacher_id
+            JOIN assignment_types t ON t.id = a.type_id
+            ORDER BY a.due_date, a.due_time, c.title
+        """, (user["id"],)))
+    return jsonify(rows(f"""
+        SELECT {ASSIGNMENT_COLUMNS}, g.score
         FROM assignments a
         JOIN courses c ON c.id = a.course_id
         JOIN users teacher ON teacher.id = c.teacher_id
@@ -512,6 +649,165 @@ def assignments():
     """, (user["id"], user["id"])))
 
 
+@app.get("/api/assignment-types")
+def assignment_types():
+    _user, error = guard()
+    if error:
+        return error
+    return jsonify(rows("SELECT id, name FROM assignment_types ORDER BY id"))
+
+
+@app.post("/api/assignments")
+def create_assignment():
+    """Teacher adds a task to one of his courses with an exact deadline (date + time)."""
+    user, error = teacher_guard()
+    if error:
+        return error
+    data = request.get_json(silent=True) or {}
+    title = str(data.get("title", "")).strip()
+    description = str(data.get("description", "")).strip()
+    form = str(data.get("control_form", "current"))
+    try:
+        course_id = int(data.get("course_id"))
+        type_id = int(data.get("type_id"))
+        max_score = float(data.get("max_score"))
+        due_date = date.fromisoformat(str(data.get("due_date", "")))
+        due_time = parse_hhmm(data.get("due_time", ""))
+    except (TypeError, ValueError):
+        raise Refuse(400, "Fill in course, type, max score and the deadline (date and time HH:MM)")
+
+    if not 1 <= len(title) <= 100:
+        raise Refuse(400, "Title must be 1-100 characters")
+    if len(description) > 1000:
+        raise Refuse(400, "Description is too long (max 1000 characters)")
+    if form not in ("current", "midterm", "final"):
+        raise Refuse(400, "Unknown form of control")
+    if not 0 < max_score <= 1000:
+        raise Refuse(400, "Max score must be between 0 and 1000")
+    if not owns_course(user, course_id):
+        raise Refuse(403, "You can add tasks only to your own courses")
+    if not query_one("SELECT 1 AS found FROM assignment_types WHERE id = %s", (type_id,)):
+        raise Refuse(400, "Unknown task type")
+
+    due_text = due_time.strftime("%H:%M")
+    future = query_one("SELECT (%s::date + %s::time) > localtimestamp AS ok", (due_date.isoformat(), due_text))
+    if not future["ok"]:
+        raise Refuse(400, "The deadline must be in the future")
+
+    conn = db()
+    with conn.cursor() as cur:
+        cur.execute(
+            """INSERT INTO assignments(course_id,title,type_id,control_form,max_score,due_date,due_time,description)
+               VALUES (%s,%s,%s,%s,%s,%s::date,%s::time,%s)
+               ON CONFLICT (course_id, title) DO NOTHING
+               RETURNING id""",
+            (course_id, title, type_id, form, max_score, due_date.isoformat(), due_text, description))
+        created = cur.fetchone()
+    conn.commit()
+    if not created:
+        raise Refuse(409, "This course already has a task with this title")
+    return jsonify(id=created[0]), 201
+
+
+@app.delete("/api/assignments/<int:assignment_id>")
+def delete_assignment(assignment_id):
+    user, error = teacher_guard()
+    if error:
+        return error
+    found = query_one(
+        """SELECT a.id FROM assignments a JOIN courses c ON c.id = a.course_id
+           WHERE a.id = %s AND c.teacher_id = %s""", (assignment_id, user["id"]))
+    if not found:
+        raise Refuse(404, "Task not found in your courses")
+    if query_one("SELECT 1 AS found FROM grades WHERE assignment_id = %s LIMIT 1", (assignment_id,)):
+        raise Refuse(409, "This task already has grades and cannot be deleted")
+    execute("DELETE FROM assignments WHERE id = %s", (assignment_id,))
+    return jsonify(ok=True)
+
+
+# ---------------------------------------------------------------- timetable
+WEEKDAY_MAX = 7
+LESSON_KINDS = ("Lecture", "Practice", "Lab")
+
+
+@app.get("/api/schedule")
+def schedule():
+    user, error = guard()
+    if error:
+        return error
+    if user["role"] == "teacher":
+        join, where = "", "WHERE c.teacher_id = %s"
+    else:
+        join, where = "JOIN enrollments e ON e.course_id = c.id AND e.user_id = %s", ""
+    return jsonify(rows(f"""
+        SELECT s.id, s.course_id, c.title AS course, c.code, u.full_name AS teacher, s.weekday,
+               to_char(s.start_time, 'HH24:MI') AS starts, to_char(s.end_time, 'HH24:MI') AS ends,
+               s.room, s.kind
+        FROM schedule s
+        JOIN courses c ON c.id = s.course_id
+        JOIN users u ON u.id = c.teacher_id
+        {join}
+        {where}
+        ORDER BY s.weekday, s.start_time, c.title
+    """, (user["id"],)))
+
+
+@app.post("/api/schedule")
+def create_lesson():
+    user, error = teacher_guard()
+    if error:
+        return error
+    data = request.get_json(silent=True) or {}
+    room = str(data.get("room", "")).strip()
+    kind = str(data.get("kind", ""))
+    try:
+        course_id = int(data.get("course_id"))
+        weekday = int(data.get("weekday"))
+        start = parse_hhmm(data.get("start", ""))
+        end = parse_hhmm(data.get("end", ""))
+    except (TypeError, ValueError):
+        raise Refuse(400, "Fill in course, day, start and end time (HH:MM)")
+    if not 1 <= weekday <= WEEKDAY_MAX or kind not in LESSON_KINDS or not 1 <= len(room) <= 20:
+        raise Refuse(400, "Check day, type and room (1-20 characters)")
+    if end <= start:
+        raise Refuse(400, "The class must end after it starts")
+    if not owns_course(user, course_id):
+        raise Refuse(403, "You can edit the timetable only of your own courses")
+
+    start_text, end_text = start.strftime("%H:%M"), end.strftime("%H:%M")
+    clash = query_one(
+        """SELECT 1 AS found FROM schedule s JOIN courses c ON c.id = s.course_id
+           WHERE s.weekday = %s AND s.start_time < %s::time AND s.end_time > %s::time
+             AND (c.teacher_id = %s OR s.room = %s) LIMIT 1""",
+        (weekday, end_text, start_text, user["id"], room))
+    if clash:
+        raise Refuse(409, "At this time you already have a class or the room is taken")
+    created = execute(
+        """INSERT INTO schedule(course_id,weekday,start_time,end_time,room,kind)
+           VALUES (%s,%s,%s::time,%s::time,%s,%s) RETURNING id""",
+        (course_id, weekday, start_text, end_text, room, kind), returning=True)
+    return jsonify(id=created["id"]), 201
+
+
+@app.delete("/api/schedule/<int:lesson_id>")
+def delete_lesson(lesson_id):
+    user, error = teacher_guard()
+    if error:
+        return error
+    conn = db()
+    with conn.cursor() as cur:
+        cur.execute(
+            """DELETE FROM schedule s USING courses c
+               WHERE s.id = %s AND c.id = s.course_id AND c.teacher_id = %s""",
+            (lesson_id, user["id"]))
+        deleted = cur.rowcount
+    conn.commit()
+    if not deleted:
+        raise Refuse(404, "Class not found in your courses")
+    return jsonify(ok=True)
+
+
+# ---------------------------------------------------------------- student data
 @app.get("/api/attendance")
 def attendance():
     user, error = guard()
@@ -532,6 +828,17 @@ def dashboard():
     if error:
         return error
     uid = user["id"]
+    if user["role"] == "teacher":
+        stats = query_one("""
+            SELECT (SELECT COUNT(*) FROM courses WHERE teacher_id = %(u)s) AS courses,
+                   (SELECT COUNT(DISTINCT e.user_id) FROM enrollments e
+                    JOIN courses c ON c.id = e.course_id WHERE c.teacher_id = %(u)s) AS students,
+                   (SELECT COUNT(*) FROM project_groups p
+                    JOIN courses c ON c.id = p.course_id WHERE c.teacher_id = %(u)s) AS groups,
+                   (SELECT COUNT(*) FROM assignments a JOIN courses c ON c.id = a.course_id
+                    WHERE c.teacher_id = %(u)s AND (a.due_date + a.due_time) >= localtimestamp) AS assignments
+        """, {"u": uid})
+        return jsonify(stats)
     courses_count = query_one(
         "SELECT COUNT(*) AS value FROM enrollments WHERE user_id = %s", (uid,)
     )["value"]
@@ -554,24 +861,42 @@ def dashboard():
     )
 
 
+# ---------------------------------------------------------------- project groups
+GROUP_SELECT = """
+    SELECT p.id, p.course_id, p.name, p.max_size, c.title AS course,
+           COALESCE((SELECT json_agg(json_build_object('id', u.id, 'name', u.full_name, 'email', u.email)
+                                     ORDER BY u.full_name)
+                     FROM group_members m JOIN users u ON u.id = m.user_id
+                     WHERE m.group_id = p.id), '[]'::json) AS participants
+    FROM project_groups p
+    JOIN courses c ON c.id = p.course_id
+"""
+
+
 @app.get("/api/groups")
 def groups():
+    """Teacher: all groups of his courses. Student: only the groups he is a member of. Both see participants."""
     user, error = guard()
     if error:
         return error
-    return jsonify(rows("""
-        SELECT p.id, p.name, p.max_size, c.title AS course,
-               (SELECT COUNT(*) FROM group_members m WHERE m.group_id = p.id) AS members
-        FROM project_groups p
-        JOIN courses c ON c.id = p.course_id
-        JOIN group_members me ON me.group_id = p.id AND me.user_id = %s
-        ORDER BY p.id DESC
-    """, (user["id"],)))
+    teacher = user["role"] == "teacher"
+    if teacher:
+        found = rows(GROUP_SELECT + " WHERE c.teacher_id = %s ORDER BY c.title, p.name", (user["id"],))
+    else:
+        found = rows(GROUP_SELECT + """ JOIN group_members me ON me.group_id = p.id AND me.user_id = %s
+                                        ORDER BY p.id DESC""", (user["id"],))
+    for group in found:
+        group["members"] = len(group["participants"])
+        if not teacher:  # students see the names of the team, e-mails are for teachers only
+            for person in group["participants"]:
+                person.pop("email", None)
+    return jsonify(found)
 
 
 @app.post("/api/groups")
 def create_group():
-    user, error = guard()
+    """Only a teacher creates groups, inside one of his own courses."""
+    user, error = teacher_guard()
     if error:
         return error
     data = request.get_json(silent=True) or {}
@@ -580,58 +905,219 @@ def create_group():
         course_id = int(data.get("course_id"))
         max_size = int(data.get("max_size"))
     except (TypeError, ValueError):
-        return jsonify(error="Invalid input"), 400
-
+        raise Refuse(400, "Invalid input")
     if not 1 <= len(name) <= 60 or not 2 <= max_size <= 6:
-        return jsonify(error="Name 1-60 chars, size 2-6"), 400
-
-    enrolled = query_one(
-        "SELECT 1 AS found FROM enrollments WHERE user_id = %s AND course_id = %s",
-        (user["id"], course_id)
-    )
-    if not enrolled:
-        return jsonify(error="You are not enrolled in this course"), 403
-
-    conn = db()
-    try:
-        with conn.cursor(cursor_factory=RealDictCursor) as cur:
-            cur.execute(
-                """INSERT INTO project_groups(course_id,name,max_size,created_by)
-                   VALUES (%s,%s,%s,%s) RETURNING id""",
-                (course_id, name, max_size, user["id"])
-            )
-            group_id = cur.fetchone()["id"]
-            cur.execute(
-                "INSERT INTO group_members(group_id,user_id) VALUES (%s,%s)",
-                (group_id, user["id"])
-            )
-        conn.commit()  # both inserts succeed together or not at all
-    except Exception:
-        conn.rollback()
-        raise
-    return jsonify(id=group_id), 201
+        raise Refuse(400, "Name 1-60 chars, size 2-6")
+    if not owns_course(user, course_id):
+        raise Refuse(403, "You can create groups only in your own courses")
+    created = execute(
+        """INSERT INTO project_groups(course_id,name,max_size,created_by)
+           VALUES (%s,%s,%s,%s) RETURNING id""",
+        (course_id, name, max_size, user["id"]), returning=True)
+    return jsonify(id=created["id"]), 201
 
 
 @app.delete("/api/groups/<int:group_id>")
 def delete_group(group_id):
-    user, error = guard()
+    user, error = teacher_guard()
     if error:
         return error
     conn = db()
     with conn.cursor() as cur:
         cur.execute(
-            "DELETE FROM project_groups WHERE id = %s AND created_by = %s",
-            (group_id, user["id"])
-        )
+            """DELETE FROM project_groups p USING courses c
+               WHERE p.id = %s AND c.id = p.course_id AND c.teacher_id = %s""",
+            (group_id, user["id"]))
         deleted = cur.rowcount
     conn.commit()
-    if deleted:
-        return jsonify(ok=True)
-    return jsonify(error="Group not found or you are not its creator"), 403
+    if not deleted:
+        raise Refuse(404, "Group not found in your courses")
+    return jsonify(ok=True)
+
+
+@app.post("/api/groups/<int:group_id>/members")
+def add_member(group_id):
+    """Teacher puts a specific student of the course into a group."""
+    user, error = teacher_guard()
+    if error:
+        return error
+    data = request.get_json(silent=True) or {}
+    try:
+        student_id = int(data.get("user_id"))
+    except (TypeError, ValueError):
+        raise Refuse(400, "Choose a student")
+
+    conn = db()
+    with conn.cursor(cursor_factory=RealDictCursor) as cur:
+        # FOR UPDATE locks the group row, so two teachers' clicks cannot overfill the group
+        cur.execute(
+            """SELECT p.course_id, p.max_size FROM project_groups p JOIN courses c ON c.id = p.course_id
+               WHERE p.id = %s AND c.teacher_id = %s FOR UPDATE OF p""",
+            (group_id, user["id"]))
+        group = cur.fetchone()
+        if not group:
+            raise Refuse(404, "Group not found in your courses")
+        cur.execute(
+            """SELECT 1 FROM enrollments e JOIN users u ON u.id = e.user_id
+               WHERE e.user_id = %s AND e.course_id = %s AND u.role = 'student'""",
+            (student_id, group["course_id"]))
+        if not cur.fetchone():
+            raise Refuse(400, "This student is not enrolled in the course")
+        cur.execute(
+            """SELECT 1 FROM group_members m JOIN project_groups p ON p.id = m.group_id
+               WHERE m.user_id = %s AND p.course_id = %s""",
+            (student_id, group["course_id"]))
+        if cur.fetchone():
+            raise Refuse(409, "This student is already in a group of this course")
+        cur.execute("SELECT COUNT(*) AS n FROM group_members WHERE group_id = %s", (group_id,))
+        if cur.fetchone()["n"] >= group["max_size"]:
+            raise Refuse(409, "The group is full")
+        cur.execute("INSERT INTO group_members(group_id,user_id) VALUES (%s,%s)", (group_id, student_id))
+    conn.commit()
+    return jsonify(ok=True), 201
+
+
+@app.delete("/api/groups/<int:group_id>/members/<int:student_id>")
+def remove_member(group_id, student_id):
+    user, error = teacher_guard()
+    if error:
+        return error
+    conn = db()
+    with conn.cursor() as cur:
+        cur.execute(
+            """DELETE FROM group_members m USING project_groups p, courses c
+               WHERE m.group_id = %s AND m.user_id = %s AND p.id = m.group_id
+                 AND c.id = p.course_id AND c.teacher_id = %s""",
+            (group_id, student_id, user["id"]))
+        deleted = cur.rowcount
+    conn.commit()
+    if not deleted:
+        raise Refuse(404, "Participant not found in your groups")
+    return jsonify(ok=True)
+
+
+# ---------------------------------------------------------------- applications (IROS, SSQI, SocGPA ...)
+def admin_guard():
+    user, error = guard()
+    if error:
+        return None, error
+    if user["role"] != "admin":
+        return None, (jsonify(error="Only the registrar office (admin) can do this"), 403)
+    return user, None
+
+
+APPLICATION_SELECT = """
+    SELECT a.id, t.code AS type, t.title AS type_title, a.message, a.status,
+           to_char(a.created_at, 'YYYY-MM-DD HH24:MI') AS created_at,
+           a.review_comment, to_char(a.reviewed_at, 'YYYY-MM-DD HH24:MI') AS reviewed_at,
+           u.full_name AS student, u.email
+    FROM applications a
+    JOIN application_types t ON t.id = a.type_id
+    JOIN users u ON u.id = a.user_id
+"""
+
+
+@app.get("/api/application-types")
+def application_types():
+    _user, error = guard()
+    if error:
+        return error
+    return jsonify(rows("SELECT id, code, title FROM application_types ORDER BY id"))
+
+
+@app.get("/api/applications")
+def applications():
+    """Student: his own applications. Admin: all applications, pending first."""
+    user, error = guard()
+    if error:
+        return error
+    if user["role"] == "admin":
+        return jsonify(rows(APPLICATION_SELECT + " ORDER BY (a.status = 'pending') DESC, a.created_at DESC"))
+    if user["role"] != "student":
+        raise Refuse(403, "Applications are for students")
+    return jsonify(rows(APPLICATION_SELECT + " WHERE a.user_id = %s ORDER BY a.created_at DESC", (user["id"],)))
+
+
+@app.post("/api/applications")
+def create_application():
+    user, error = guard()
+    if error:
+        return error
+    if user["role"] != "student":
+        raise Refuse(403, "Only students submit applications")
+    data = request.get_json(silent=True) or {}
+    message = str(data.get("message", "")).strip()
+    try:
+        type_id = int(data.get("type_id"))
+    except (TypeError, ValueError):
+        raise Refuse(400, "Choose the type of application")
+    if not 1 <= len(message) <= 1000:
+        raise Refuse(400, "Message must be 1-1000 characters")
+    if not query_one("SELECT 1 AS found FROM application_types WHERE id = %s", (type_id,)):
+        raise Refuse(400, "Unknown type of application")
+    conn = db()
+    with conn.cursor() as cur:
+        # the partial unique index allows only one pending application of each type per student
+        cur.execute(
+            """INSERT INTO applications(user_id,type_id,message) VALUES (%s,%s,%s)
+               ON CONFLICT (user_id, type_id) WHERE status = 'pending' DO NOTHING
+               RETURNING id""",
+            (user["id"], type_id, message))
+        created = cur.fetchone()
+    conn.commit()
+    if not created:
+        raise Refuse(409, "You already have a pending application of this type")
+    return jsonify(id=created[0]), 201
+
+
+@app.delete("/api/applications/<int:application_id>")
+def withdraw_application(application_id):
+    """A student can take back his own application while it is still pending."""
+    user, error = guard()
+    if error:
+        return error
+    conn = db()
+    with conn.cursor() as cur:
+        cur.execute("DELETE FROM applications WHERE id = %s AND user_id = %s AND status = 'pending'",
+                    (application_id, user["id"]))
+        deleted = cur.rowcount
+    conn.commit()
+    if not deleted:
+        raise Refuse(404, "Pending application not found")
+    return jsonify(ok=True)
+
+
+@app.post("/api/applications/<int:application_id>/review")
+def review_application(application_id):
+    user, error = admin_guard()
+    if error:
+        return error
+    data = request.get_json(silent=True) or {}
+    decision = str(data.get("decision", ""))
+    comment = str(data.get("comment", "")).strip()
+    if decision not in ("approved", "rejected"):
+        raise Refuse(400, "Decision must be approved or rejected")
+    if len(comment) > 500:
+        raise Refuse(400, "Comment is too long (max 500 characters)")
+    if decision == "rejected" and not comment:
+        raise Refuse(400, "Write the reason for rejection")
+    conn = db()
+    with conn.cursor() as cur:
+        cur.execute(
+            """UPDATE applications SET status = %s, review_comment = %s, reviewed_by = %s, reviewed_at = localtimestamp
+               WHERE id = %s AND status = 'pending'""",
+            (decision, comment, user["id"], application_id))
+        updated = cur.rowcount
+    conn.commit()
+    if not updated:
+        raise Refuse(409, "Application not found or already reviewed")
+    return jsonify(ok=True)
 
 
 if __name__ == "__main__":
     init_db()
     print("Open http://127.0.0.1:5000")
-    print(f"Demo login: 260002@astanait.edu.kz / {DEMO_PASSWORD}")
+    print(f"Student login: 260002@astanait.edu.kz / {DEMO_PASSWORD}")
+    print(f"Admin login:   {ADMIN[1]} / {DEMO_PASSWORD}")
+    print(f"Teacher login: teacher@astanait.edu.kz / {DEMO_PASSWORD}")
     app.run(debug=os.getenv("FLASK_DEBUG") == "1", port=5000)
