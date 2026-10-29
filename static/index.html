@@ -4,6 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Astana IT University LMS</title>
+<link rel="icon" href="icons/favicon.svg" type="image/svg+xml">
 <style>
 :root {
     --bg: #d4d5d9;
@@ -14,6 +15,8 @@
     --text: #111;
     --rail: #202020;
     --sh: 0 3px 6px #0004;
+    --ok: #08501f;
+    --err: #7a1c10;
 }
 :root[data-theme=dark] {
     --bg: #16171a;
@@ -24,6 +27,8 @@
     --text: #eee;
     --rail: #000;
     --sh: 0 3px 6px #0008;
+    --ok: #5ee38b;
+    --err: #ff8a80;
 }
 * {
     box-sizing: border-box;
@@ -58,7 +63,7 @@ button {
     background: linear-gradient(135deg,#27406b,#111);
 }
 .logo {
-    width: 220px;
+    width: 96px;
     max-width: 70%;
     height: auto;
 }
@@ -113,7 +118,7 @@ button {
     font-size: 13px;
 }
 .msg {
-    color: #c0392b;
+    color: var(--err);
     min-height: 20px;
     font-size: 14px;
 }
@@ -146,22 +151,16 @@ button {
     font-size: 22px;
     border-radius: 10px;
 }
-.rail img,.menu img {
+.ico {
     width: 26px;
     height: 26px;
-    object-fit: contain;
     flex: none;
+    fill: none;
+    stroke: currentColor;      /* follows the text colour, so light/dark theme needs no image tricks */
+    stroke-width: 2;
+    stroke-linecap: round;
+    stroke-linejoin: round;
     pointer-events: none;
-}
-.menu img {
-    mix-blend-mode: multiply;
-}
-.rail img {
-    mix-blend-mode: screen;
-}
-:root[data-theme=dark] .menu img {
-    filter: invert(1);
-    mix-blend-mode: screen;
 }
 .rail button.on {
     background: #555;
@@ -339,14 +338,6 @@ form {
 .tl-ico {
     width: 30px;
     height: 30px;
-    object-fit: contain;
-    flex: none;
-    filter: invert(1);
-    mix-blend-mode: multiply;
-}
-:root[data-theme=dark] .tl-ico {
-    filter: none;
-    mix-blend-mode: screen;
 }
 .tl-body {
     min-width: 0;
@@ -369,8 +360,11 @@ form {
 }
 @media(max-width:760px) {
     #app {
-        grid-template-columns: 1fr;
+        grid-template-columns: minmax(0,1fr);   /* plain 1fr let the nowrap menu stretch the page to 604px at 360px */
         padding: 8px;
+    }
+    .leftcol, .side, main {
+        min-width: 0;
     }
     .leftcol {
         flex-direction: row;
@@ -396,6 +390,7 @@ form {
     .menu button {
         white-space: nowrap;
         font-size: 15px;
+        flex: none;          /* do not squash the buttons: the row scrolls inside .menu instead of overlapping */
     }
     main {
         padding: 16px;
@@ -405,10 +400,42 @@ form {
     }
 }
 
+.cover {
+    display: block;
+    width: 100%;
+    height: auto;
+    aspect-ratio: 16/9;
+    object-fit: cover;
+    border-radius: 8px;
+    margin-bottom: 10px;
+}
+.msg.ok {
+    color: var(--ok);
+}
+.msg:not(:empty) {
+    animation: pop .35s ease-out;
+}
+@keyframes pop {
+    from { opacity: 0; transform: translateY(-4px); }
+    to { opacity: 1; transform: none; }
+}
+.sk .top, .sk .strip {
+    background: linear-gradient(90deg,var(--card) 25%,var(--strip) 50%,var(--card) 75%);
+    background-size: 200% 100%;
+    animation: shimmer 1.2s linear infinite;
+}
+.sk .top { min-height: 200px; }
+@keyframes shimmer {
+    to { background-position: -200% 0; }
+}
+@media (prefers-reduced-motion: reduce) {
+    * { animation: none !important; transition: none !important; }
+}
 </style>
 </head>
 <body>
 <div id="login">
+  <img class="logo" src="icons/logo.svg" alt="LMS redesign prototype logo" width="96" height="96">
   <div class="lbox">
     <input id="email" type="email" value="260002@astanait.edu.kz" autocomplete="username" aria-label="University email">
     <div class="pw"><input id="password" type="password" placeholder="Password" autocomplete="current-password" aria-label="Password"><button type="button" id="showpw" aria-label="Show password">Show</button></div>
@@ -420,20 +447,20 @@ form {
 <div id="app">
   <div class="leftcol">
     <div class="rail">
-      <button data-v="dashboard" class="on" title="Home" aria-label="Home"><img src="icons/home.jpg" alt=""></button>
-      <button data-v="groups" title="Project groups" aria-label="Project groups"><img src="icons/chat.jpg" alt=""></button>
-      <button data-v="grades" title="Grades" aria-label="Grades"><img src="icons/notes.jpg" alt=""></button>
+      <button data-v="dashboard" class="on" title="Home" aria-label="Home"><svg class="ico" aria-hidden="true" focusable="false"><use href="icons/sprite.svg#i-home"/></svg></button>
+      <button data-v="groups" title="Project groups" aria-label="Project groups"><svg class="ico" aria-hidden="true" focusable="false"><use href="icons/sprite.svg#i-chat"/></svg></button>
+      <button data-v="grades" title="Grades" aria-label="Grades"><svg class="ico" aria-hidden="true" focusable="false"><use href="icons/sprite.svg#i-notes"/></svg></button>
     </div>
-    <div class="tools"><button id="theme" title="Dark mode">&#9790;</button></div>
+    <div class="tools"><button id="snd" title="Sound on" aria-label="Notification sound" aria-pressed="true">&#9834;</button><button id="theme" title="Dark mode">&#9790;</button></div>
   </div>
   <div class="side">
     <button class="user" id="user"><span>&#128100;</span><div><div id="uname">Student name</div><div id="umail"></div></div></button>
     <button id="lo">&#10162; Log out</button>
     <nav class="menu">
-      <button data-v="dashboard"><img src="icons/dashboard.jpg" alt="">Dashboard</button>
-      <button data-v="courses" class="on"><img src="icons/courses.jpg" alt="">My courses</button>
-      <button data-v="attendance"><img src="icons/attendance.jpg" alt="">Attendance</button>
-      <button data-v="grades"><img src="icons/grades.jpg" alt="">Grades</button>
+      <button data-v="dashboard"><svg class="ico" aria-hidden="true" focusable="false"><use href="icons/sprite.svg#i-dashboard"/></svg>Dashboard</button>
+      <button data-v="courses" class="on"><svg class="ico" aria-hidden="true" focusable="false"><use href="icons/sprite.svg#i-courses"/></svg>My courses</button>
+      <button data-v="attendance"><svg class="ico" aria-hidden="true" focusable="false"><use href="icons/sprite.svg#i-attendance"/></svg>Attendance</button>
+      <button data-v="grades"><svg class="ico" aria-hidden="true" focusable="false"><use href="icons/sprite.svg#i-grades"/></svg>Grades</button>
     </nav>
   </div>
   <main id="view"></main>
@@ -463,6 +490,9 @@ $("#showpw").onclick=()=>{const p=$("#password"),h=p.type==="password";p.type=h?
 $("#user").onclick=()=>{const o=$("#lo").style.display==="block";$("#lo").style.display=o?"none":"block";
   $("#umail").textContent=mask(sessionStorage.getItem("m")||"")+(o?" \u25BE":" \u25B4")};
 $("#lo").onclick=async()=>{try{await api("/logout",{method:"POST"})}catch(e){}sessionStorage.clear();token="";$("#app").style.display="none";$("#login").style.display="flex"};
+let sound=true;
+const ping=()=>{if(!sound)return;try{const a=new Audio("media/notify.mp3");a.volume=.5;a.play().catch(()=>{})}catch(e){}};
+$("#snd").onclick=()=>{sound=!sound;$("#snd").setAttribute("aria-pressed",sound);$("#snd").title=sound?"Sound on":"Sound off";$("#snd").innerHTML=sound?"&#9834;":"&times;"};
 $("#theme").onclick=()=>{const r=document.documentElement;r.dataset.theme=r.dataset.theme==="dark"?"":"dark"};
 document.querySelectorAll("[data-v]").forEach(b=>b.onclick=()=>show(b.dataset.v));
 
@@ -470,6 +500,8 @@ function start(){$("#login").style.display="none";$("#app").style.display="grid"
   $("#uname").textContent=sessionStorage.getItem("n");$("#umail").textContent=mask(sessionStorage.getItem("m"))+" \u25BE";show("courses")}
 
 const card=(t,s)=>`<div class=card><div class=top>${t}</div><div class=strip>${s}</div></div>`;
+const cover=(id,i)=>{const n=id%5;   // first two covers are above the fold -> eager, the rest lazy
+  return `<img class=cover src="media/cover-${n}-640.webp" srcset="media/cover-${n}-320.webp 320w, media/cover-${n}-640.webp 640w" sizes="(max-width:600px) 90vw, 240px" width=320 height=180 alt="" ${i<2?"":"loading=lazy "}decoding=async>`};
 const bar=p=>`<div class=bar><i style="width:${p}%"></i></div>`;
 
 async function show(v){
@@ -477,13 +509,14 @@ async function show(v){
   const el=$("#view");
   try{
   if(v==="courses"){
+    el.innerHTML="<h2>My courses</h2><div class=cards aria-busy=true>"+'<div class="card sk" aria-hidden=true><div class=top></div><div class=strip></div></div>'.repeat(5)+"</div>";
     const c=await api("/courses");
-    el.innerHTML="<h2>My courses</h2><div class=cards>"+c.map(x=>card(`<b>${esc(x.title)}</b><br><small>${esc(x.code)}</small>`,esc(x.teacher))).join("")+"</div>";
+    el.innerHTML="<h2>My courses</h2><div class=cards>"+c.map((x,i)=>card(cover(x.id,i)+`<b>${esc(x.title)}</b><br><small>${esc(x.code)}</small>`,esc(x.teacher))).join("")+"</div>";
   }else if(v==="dashboard"){
     const [d,all,att]=await Promise.all([api("/dashboard"),api("/assignments"),api("/attendance")]);
     const todo=all.filter(x=>x.score===null);   // not graded yet = still to do
     const ctl={current:"Current",midterm:"Midterm",final:"Final"};
-    const ico='<img class=tl-ico src="icons/notes.jpg" alt="">';
+    const ico='<svg class="ico tl-ico" aria-hidden="true" focusable="false"><use href="icons/sprite.svg#i-notes"/></svg>';
     const day=s=>{const t=new Date(s+"T00:00:00Z"),o={timeZone:"UTC"};
       return t.toLocaleDateString("en-US",{...o,weekday:"long"})+", "+t.getUTCDate()+" "+t.toLocaleDateString("en-US",{...o,month:"long"})+" "+t.getUTCFullYear()};
     el.innerHTML="<h2>Dashboard</h2><div class=cards>"+
@@ -532,13 +565,13 @@ async function show(v){
     <form id="gf"><input id="gn" placeholder="Group name" required maxlength="60">
     <select id="gc">${c.map(x=>`<option value=${x.id}>${esc(x.title)}</option>`).join("")}</select>
     <input id="gs" type="number" min="2" max="6" value="4" style="width:80px" aria-label="Max size">
-    <button>Create group</button></form><div class=msg id="gm"></div>
+    <button>Create group</button></form><div class=msg id="gm" role="status"></div>
     <div class=cards>${g.map(x=>card(`<b>${esc(x.name)}</b><br><small>${esc(x.course)} · ${x.members}/${x.max_size}</small>`,
       `<button data-d=${x.id}>Delete</button>`)).join("")||"<p>No groups yet.</p>"}</div>`;
     $("#gf").onsubmit=async e=>{e.preventDefault();
-      try{await api("/groups",{method:"POST",body:JSON.stringify({name:$("#gn").value,course_id:$("#gc").value,max_size:$("#gs").value})});await show("groups");$("#gm").style.color="#27ae60";$("#gm").textContent="Group created and saved to the database"}
+      try{await api("/groups",{method:"POST",body:JSON.stringify({name:$("#gn").value,course_id:$("#gc").value,max_size:$("#gs").value})});await show("groups");$("#gm").className="msg ok";$("#gm").textContent="Group created and saved to the database";ping()}
       catch(er){$("#gm").textContent=er.message}};
-    el.querySelectorAll("[data-d]").forEach(b=>b.onclick=async()=>{if(!confirm("Delete this group?"))return;try{await api("/groups/"+b.dataset.d,{method:"DELETE"});await show("groups");$("#gm").style.color="#27ae60";$("#gm").textContent="Group deleted from the database"}catch(er){$("#gm").textContent=er.message}});
+    el.querySelectorAll("[data-d]").forEach(b=>b.onclick=async()=>{if(!confirm("Delete this group?"))return;try{await api("/groups/"+b.dataset.d,{method:"DELETE"});await show("groups");$("#gm").className="msg ok";$("#gm").textContent="Group deleted from the database";ping()}catch(er){$("#gm").textContent=er.message}});
   }}catch(e){el.innerHTML="<p class=msg>"+esc(e.message)+"</p>"}
 }
 if(token)start();

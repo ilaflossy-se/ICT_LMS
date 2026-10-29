@@ -379,7 +379,12 @@ def index():
 
 @app.get("/icons/<path:filename>")
 def icons(filename):
-    return send_from_directory("static/icons", filename)
+    return send_from_directory("static/icons", filename, max_age=86400)
+
+
+@app.get("/media/<path:filename>")
+def media(filename):
+    return send_from_directory("static/media", filename, max_age=86400)
 
 
 def current_user():
